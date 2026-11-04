@@ -18,6 +18,10 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
+        cache: gradle
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
 
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
@@ -29,7 +33,7 @@ jobs:
         cp debug.keystore app/debug.keystore
 
     - name: Build Debug APK with Gradle
-      run: gradle assembleDebug --stacktrace
+      run: gradle assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Xmx4096m -XX:MaxMetaspaceSize=1024m"
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
