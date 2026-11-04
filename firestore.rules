@@ -1,0 +1,88 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidUser(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.email is string && data.email.size() >= 3 && data.email.size() <= 200 &&
+             data.displayName is string && data.displayName.size() <= 100 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidFile(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 255 &&
+             data.mimeType is string && data.mimeType.size() >= 1 && data.mimeType.size() <= 100 &&
+             data.fileType in ['PHOTO', 'PDF', 'DOCUMENT'] &&
+             data.sizeBytes is int && data.sizeBytes >= 0 &&
+             (!('storageUrl' in data) || data.storageUrl == null || (data.storageUrl is string && data.storageUrl.size() <= 2000)) &&
+             (!('storagePath' in data) || data.storagePath == null || (data.storagePath is string && data.storagePath.size() <= 500)) &&
+             (!('contentBase64' in data) || data.contentBase64 == null || (data.contentBase64 is string && data.contentBase64.size() <= 950000)) &&
+             (!('thumbnailBase64' in data) || data.thumbnailBase64 == null || (data.thumbnailBase64 is string && data.thumbnailBase64.size() <= 200000)) &&
+             (!('description' in data) || data.description == null || (data.description is string && data.description.size() <= 1000)) &&
+             data.category is string && data.category.size() >= 1 && data.category.size() <= 50 &&
+             data.isStarred is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /users/{userId} {
+      allow get, list: if isSignedIn() && request.auth.uid == userId;
+
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidId(userId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'email', 'displayName', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'email', 'displayName', 'createdAt', 'updatedAt']) &&
+                       isValidUser(incoming());
+
+      allow update: if isSignedIn() && request.auth.uid == userId && isValidId(userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidUser(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email', 'updatedAt']);
+
+      allow delete: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
+
+      match /files/{fileId} {
+        allow get: if isSignedIn() && request.auth.uid == userId && isValidId(fileId);
+        allow list: if isSignedIn() && request.auth.uid == userId;
+
+        allow create: if isSignedIn() && request.auth.uid == userId && isValidId(fileId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll(['userId', 'name', 'mimeType', 'fileType', 'sizeBytes', 'category', 'isStarred', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'name', 'mimeType', 'fileType', 'sizeBytes', 'storageUrl', 'storagePath', 'contentBase64', 'thumbnailBase64', 'description', 'category', 'isStarred', 'createdAt', 'updatedAt']) &&
+                         isValidFile(incoming());
+
+        allow update: if isSignedIn() && request.auth.uid == userId && isValidId(fileId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidFile(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['name', 'category', 'description', 'isStarred', 'storageUrl', 'storagePath', 'thumbnailBase64', 'contentBase64', 'updatedAt']);
+
+        allow delete: if isSignedIn() && request.auth.uid == userId && isValidId(fileId);
+      }
+    }
+  }
+}

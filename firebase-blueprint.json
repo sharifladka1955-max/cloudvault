@@ -1,0 +1,121 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account metadata and storage statistics",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Unique Google user ID"
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display name"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the user account was created; client must provide serverTimestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of last profile update; client must provide serverTimestamp"
+        }
+      },
+      "required": ["userId", "email", "displayName", "createdAt", "updatedAt"]
+    },
+    "CloudFile": {
+      "title": "Cloud File",
+      "description": "A photo or PDF document stored via Supabase Storage and synced with Firestore",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Google user ID"
+        },
+        "name": {
+          "type": "string",
+          "description": "Original file name"
+        },
+        "mimeType": {
+          "type": "string",
+          "description": "MIME type (e.g., image/jpeg, application/pdf)"
+        },
+        "fileType": {
+          "type": "string",
+          "enum": ["PHOTO", "PDF", "DOCUMENT"],
+          "description": "Category type of file"
+        },
+        "sizeBytes": {
+          "type": "integer",
+          "description": "Size in bytes"
+        },
+        "storageUrl": {
+          "type": "string",
+          "description": "Direct Supabase Storage public or signed URL accessible on phone and PC"
+        },
+        "storagePath": {
+          "type": "string",
+          "description": "Path in Supabase Storage bucket"
+        },
+        "contentBase64": {
+          "type": "string",
+          "description": "Optional Base64 encoded payload fallback"
+        },
+        "thumbnailBase64": {
+          "type": "string",
+          "description": "Optional Base64 compressed preview image"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional notes or tags"
+        },
+        "category": {
+          "type": "string",
+          "description": "User assigned folder or category"
+        },
+        "isStarred": {
+          "type": "boolean",
+          "description": "Favorite or starred flag"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of file upload; client must provide serverTimestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of last modification; client must provide serverTimestamp"
+        }
+      },
+      "required": [
+        "userId",
+        "name",
+        "mimeType",
+        "fileType",
+        "sizeBytes",
+        "category",
+        "isStarred",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profile and settings"
+    },
+    "/users/{userId}/files/{fileId}": {
+      "schema": { "$ref": "#/entities/CloudFile" },
+      "description": "Photos and PDF documents stored securely under user ownership"
+    }
+  }
+}
